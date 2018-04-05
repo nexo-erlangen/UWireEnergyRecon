@@ -1,0 +1,3 @@
+rsync -uPa *.hdf5 tziegler@pi2032.physik.uni-erlangen.de:/Volumes/hpc_data/nEXO/DeepLearning/Th_Study_Uwire/Th228_Wfs_SS_S5_Data/
+
+rsync -uPa *.hdf5 sn0515@cshpc.rrze.fau.de:/home/vault/capm/sn0515/PhD/Th_U-Wire/
