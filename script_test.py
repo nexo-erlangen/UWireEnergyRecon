@@ -25,6 +25,7 @@ def main():
                 model.load_weights(args.folderOUT + "models/weights-" + epoch + ".hdf5")
             except:
                 model = load_model(args.folderOUT + "models/model-" + epoch + ".hdf5")
+            print model.summary()
         except: print 'model not found' ; model = None #; continue
 
         args.source = "".join(sorted([k for k, v in files.items() if v]))
@@ -35,7 +36,7 @@ def main():
 
         if args.predict_mc:
             print 'predict MC events'
-            plot.make_plots(folderOUT=folderOUT, dataIn=data, epoch=epoch, sources=args.source, position=args.position)
+            plot.make_plots(folderOUT=folderOUT, dataIn=data, epoch=epoch, sources=args.source, position=args.position, mode='eval')
         elif args.predict_data:
             print 'predict Data events'
             if not args.rotate:
@@ -240,6 +241,10 @@ def make_plots_data(folderOUT, dataIn, epoch, sources, position):
     name_EXO = 'EXO Recon'
     peakpos = 2614.5
 
+    print dataIn['isSS']
+
+    print dataIn['isSS'] == True
+
     if 'th' in sources and position=='S5':
         CalibrateSelf = True
     else:
@@ -326,23 +331,24 @@ def generate_event_data(files):
             f = h5py.File(str(filename), 'r')
             Y_recon_array = np.asarray(f.get('reconEnergy'))
             Y_light_array = np.asarray(f.get('lightEnergy'))
-            X_init_array = np.asarray(f.get('wfs'))
-            isSS_array = ~np.asarray(f.get('isSS')) # inverted because of logic error in file production
+            # X_init_array = np.asarray(f.get('wfs'))
+            isSS_array = np.asarray(f.get('isSS'))
             posX_array = np.asarray(f.get('posX'))
             posY_array = np.asarray(f.get('posY'))
             posZ_array = np.asarray(f.get('posZ'))
-            f.close()
             lst = range(len(Y_recon_array))
             random.shuffle(lst)
             for i in lst:
                 isSS = isSS_array[i]
                 Y_recon = Y_recon_array[i]
                 Y_light = Y_light_array[i]
-                X_norm = X_init_array[i]
+                xs_i = f['wfs'][i]
                 posX = posX_array[i]
                 posY = posY_array[i]
                 posZ = posZ_array[i]
-                yield (X_norm, Y_recon, Y_light, isSS, posX, posY, posZ)
+                xs_i = np.asarray(np.split(xs_i, 2, axis=1))
+                yield (xs_i, Y_recon, Y_light, isSS, posX, posY, posZ)
+            f.close()
         print 'all files used. Re-iterating files'
 
 def generate_batch_data(generator, batchSize):
@@ -357,7 +363,9 @@ def generate_batch_data(generator, batchSize):
             posX.append(temp[4])
             posY.append(temp[5])
             posZ.append(temp[6])
-        yield (np.asarray(X), np.asarray(Y), np.asarray(Z), np.asarray(SS), np.asarray(posX), np.asarray(posY), np.asarray(posZ))
+        X = np.swapaxes(np.asarray(X), 0, 1)
+        yield (list(X), np.asarray(Y), np.asarray(Z), np.asarray(SS), np.asarray(posX), np.asarray(posY), np.asarray(posZ))
+        #yield (np.asarray(X), np.asarray(Y), np.asarray(Z), np.asarray(SS), np.asarray(posX), np.asarray(posY), np.asarray(posZ))
 
 def predict_energy_data(model, generator):
     E_pred_wfs, E_recon, E_light, isSS, posX, posY, posZ = generator.next()
@@ -372,7 +380,7 @@ def generate_event_reconstruction(files):
             f = h5py.File(str(filename), 'r')
             X_True_i = np.asarray(f.get('trueEnergy'))
             X_EXO_i = np.asarray(f.get('reconEnergy'))
-            wfs_i = np.asarray(f.get('wfs'))
+            # wfs_i = np.asarray(f.get('wfs'))
             try:    isSS_i = ~np.asarray(f.get('isSS'))  # inverted because of logic error in file production
             except: print 'check input data. Abort.' ; exit()
             posX_i = np.asarray(f.get('posX'))
@@ -382,14 +390,13 @@ def generate_event_reconstruction(files):
             missedEnergy_i = np.asarray(f.get('missedEnergy'))
             reconEnergyInd_i = np.asarray(f.get('reconEnergyInd'))
             numCC_i = np.asarray(f.get('numCC'))
-            f.close()
             lst = range(len(X_True_i))
             random.shuffle(lst)
             for i in lst:
+                xs_i = f['wfs'][i]
                 isSS = isSS_i[i]
                 X_True = X_True_i[i]
                 X_EXO = X_EXO_i[i]
-                wfs = wfs_i[i]
                 posX = posX_i[i]
                 posY = posY_i[i]
                 posZ = posZ_i[i]
@@ -397,7 +404,9 @@ def generate_event_reconstruction(files):
                 missedEnergy = missedEnergy_i[i]
                 reconEnergyInd = reconEnergyInd_i[i]
                 numCC = numCC_i[i]
-                yield (wfs, X_True, X_EXO, isSS, posX, posY, posZ, missedCluster, missedEnergy, reconEnergyInd, numCC)
+                xs_i = np.asarray(np.split(xs_i, 2, axis=1))
+                yield (xs_i, X_True, X_EXO, isSS, posX, posY, posZ, missedCluster, missedEnergy, reconEnergyInd, numCC)
+            f.close()
         print 'all files used. Re-iterating files'
 
 def generate_batch_reconstruction(generator, batchSize):
@@ -416,9 +425,13 @@ def generate_batch_reconstruction(generator, batchSize):
             mEn.append(temp[8])
             rEInd.append(temp[9])
             numCC.append(temp[10])
-        yield (np.asarray(X), np.asarray(Y), np.asarray(Z), np.asarray(SS),
+        X = np.swapaxes(np.asarray(X), 0, 1)
+        yield (list(X), np.asarray(Y), np.asarray(Z), np.asarray(SS),
                np.asarray(posX), np.asarray(posY), np.asarray(posZ), np.asarray(mCl),
                np.asarray(mEn), np.asarray(rEInd), np.asarray(numCC))
+        #yield (np.asarray(X), np.asarray(Y), np.asarray(Z), np.asarray(SS),
+         #      np.asarray(posX), np.asarray(posY), np.asarray(posZ), np.asarray(mCl),
+           #    np.asarray(mEn), np.asarray(rEInd), np.asarray(numCC))
 
 def predict_energy_reconstruction(model, generator):
     E_CNN_wfs, E_True, E_EXO, isSS, posX, posY, posZ, misClu, misEne, recEneInd, numCC = generator.next()

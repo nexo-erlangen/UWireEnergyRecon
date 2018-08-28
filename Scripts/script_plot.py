@@ -12,15 +12,15 @@ plt.rc('font', size=BIGGER_SIZE)          # controls default text sizes
 # ----------------------------------------------------------
 # Plots
 # ----------------------------------------------------------
-def make_plots(folderOUT, dataIn, epoch, sources, position):
+def make_plots(folderOUT, dataIn, epoch, sources, position, mode='train'):
     import os
-    os.system("mkdir -p %s " % (folderOUT + "2prediction-spectrum/"))
-    os.system("mkdir -p %s " % (folderOUT + "3prediction-scatter/" ))
-    os.system("mkdir -p %s " % (folderOUT + "4residual-histo/"     ))
-    os.system("mkdir -p %s " % (folderOUT + "5residual-scatter/"   ))
-    os.system("mkdir -p %s " % (folderOUT + "6residual-mean/"      ))
-    os.system("mkdir -p %s " % (folderOUT + "7residual-sigma/"))
-    os.system("mkdir -p %s " % (folderOUT + "8residual-violin/"))
+    os.system("mkdir -p %s " % (folderOUT + "/2prediction-spectrum/"))
+    os.system("mkdir -p %s " % (folderOUT + "/3prediction-scatter/" ))
+    os.system("mkdir -p %s " % (folderOUT + "/4residual-histo/"     ))
+    os.system("mkdir -p %s " % (folderOUT + "/5residual-scatter/"   ))
+    os.system("mkdir -p %s " % (folderOUT + "/6residual-mean/"      ))
+    os.system("mkdir -p %s " % (folderOUT + "/7residual-sigma/"))
+    os.system("mkdir -p %s " % (folderOUT + "/8residual-violin/"))
 
     name_CNN = 'DNN'
     name_EXO = 'EXO Recon'
@@ -70,25 +70,26 @@ def make_plots(folderOUT, dataIn, epoch, sources, position):
     obs['resid_pos'], obs['resid_sig'] = plot_residual_histo(dE=(data['E_True']['SSMS'] - data['E_CNN']['SSMS']), name_x=name_True, name_y=name_CNN,
                         fOUT=folderOUT + '4residual-histo/histogram_' + sources + '_' + position + '_ConvNN_SSMS_' + epoch + '.pdf')
 
-    # for Multi in ['SS', 'MS', 'SSMS', 'calib_SS', 'calib_MS', 'calib_SSMS']:
-    # for Multi in ['calib_SS', 'calib_MS', 'calib_SSMS']:
-    for Multi in ['SSMS', 'calib_SS', 'calib_MS', 'calib_SSMS']:
-    # for Multi in ['SSMS']:
+    if mode == 'train': modes = ['SSMS']
+    elif mode == 'eval': modes = ['SS', 'MS', 'SSMS', 'calib_SS', 'calib_MS', 'calib_SSMS']
+    else: raise ValueError("strange mode: %s"%(mode))
+    
+    for Multi in modes:
         # print 'plotting', Multi
         plot_spectrum(data_CNN=data['E_CNN'][Multi], data_EXO=data['E_EXO'][Multi], data_True=data['E_True'][Multi], fit=('th' in sources), isMC=True,
-                      peakpos=peakpos, fOUT=(folderOUT + '2prediction-spectrum/spectrum_' + sources + '_' + position + '_' + epoch + '_' + Multi + '.pdf'))
+                      peakpos=peakpos, fOUT=(folderOUT + '/2prediction-spectrum/spectrum_' + sources + '_' + position + '_' + epoch + '_' + Multi + '.pdf'))
         plot_residual_histo(dE=(data['E_True'][Multi] - data['E_EXO'][Multi]), name_x=name_True, name_y=name_EXO,
-                            fOUT=folderOUT + '4residual-histo/histogram_' + sources + '_' + position + '_Standard_' + Multi + '_' + epoch + '.pdf')
+                            fOUT=folderOUT + '/4residual-histo/histogram_' + sources + '_' + position + '_Standard_' + Multi + '_' + epoch + '.pdf')
         plot_residual_histo(dE=(data['E_True'][Multi] - data['E_CNN'][Multi]), name_x=name_True, name_y=name_CNN,
-                            fOUT=folderOUT + '4residual-histo/histogram_' + sources + '_' + position + '_ConvNN_' + Multi + '_' + epoch + '.pdf')
+                            fOUT=folderOUT + '/4residual-histo/histogram_' + sources + '_' + position + '_ConvNN_' + Multi + '_' + epoch + '.pdf')
         plot_scatter_hist2d(E_x=data['E_True'][Multi], E_y=data['E_EXO'][Multi], name_x=name_True, name_y=name_EXO,
-                            fOUT=folderOUT + '3prediction-scatter/prediction_' + sources + '_' + position + '_Standard_' + Multi + '_' + epoch + '.pdf')
+                            fOUT=folderOUT + '/3prediction-scatter/prediction_' + sources + '_' + position + '_Standard_' + Multi + '_' + epoch + '.pdf')
         plot_scatter_hist2d(E_x=data['E_True'][Multi], E_y=data['E_CNN'][Multi], name_x=name_True, name_y=name_CNN,
-                            fOUT=folderOUT + '3prediction-scatter/prediction_' + sources + '_' + position + '_ConvNN_' + Multi + '_' + epoch + '.pdf')
+                            fOUT=folderOUT + '/3prediction-scatter/prediction_' + sources + '_' + position + '_ConvNN_' + Multi + '_' + epoch + '.pdf')
         plot_residual_hist2d(E_x=data['E_True'][Multi], E_y=data['E_EXO'][Multi], name_x=name_True, name_y=name_EXO,
-                             fOUT=folderOUT + '5residual-scatter/residual_' + sources + '_' + position + '_Standard_' + Multi + '_' + epoch + '.pdf')
+                             fOUT=folderOUT + '/5residual-scatter/residual_' + sources + '_' + position + '_Standard_' + Multi + '_' + epoch + '.pdf')
         plot_residual_hist2d(E_x=data['E_True'][Multi], E_y=data['E_CNN'][Multi], name_x=name_True, name_y=name_CNN,
-                             fOUT=folderOUT + '5residual-scatter/residual_' + sources + '_' + position + '_ConvNN_' + Multi + '_' + epoch + '.pdf')
+                             fOUT=folderOUT + '/5residual-scatter/residual_' + sources + '_' + position + '_ConvNN_' + Multi + '_' + epoch + '.pdf')
         # plot_residual_hist2d(E_x=data['E_EXO'][Multi], E_y=data['E_CNN'][Multi], name_x=name_EXO, name_y=name_CNN,
         #                      fOUT=folderOUT + '5residual-scatter/residual_' + sources + '_' + position + '_Both_Standard_' + Multi + '_' + epoch + '.pdf')
         # plot_residual_hist2d(E_x=data['E_CNN'][Multi], E_y=data['E_EXO'][Multi], name_x=name_CNN, name_y=name_EXO,
@@ -142,8 +143,8 @@ def fit_spectrum(data, peakpos, fit, name, color, isMC, peakfinder='max', zorder
             # plt.plot(bin_centres[low:up], gaussErf(bin_centres[low:up], *coeff) / norm_factor, lw=1 , ls='--', color=color)
 
             plt.plot(bin_centres, gauss_zero(bin_centres, *coeff[:3]) / norm_factor, lw=1, ls='--', color=color, zorder=zorder)
-            # plt.step(bin_centres, hist / norm_factor, where='mid', color=color, label='%s: $%.4f \pm %.4f$ %% $(\sigma)$' % (name, delE, delE_err), zorder=zorder+1)
-            plt.step(bin_centres, hist / norm_factor, where='mid', color=color, label='%s' % (name), zorder=zorder+1)
+            plt.step(bin_centres, hist / norm_factor, where='mid', color=color, label='%s: $%.4f \pm %.4f$ %% $(\sigma)$' % (name, delE, delE_err), zorder=zorder+1)
+            # plt.step(bin_centres, hist / norm_factor, where='mid', color=color, label='%s' % (name), zorder=zorder+1)
             # plt.axvline(x=2614, c='k', lw=2)
             return (coeff[1], coeff_err[1]), (abs(coeff[2]), coeff_err[2])
         else:
@@ -633,7 +634,7 @@ def get_energy_spectrum_mixed(args, files, add):
     plt.legend(loc="lower left")
     plt.xlabel('Energy [keV]')
     plt.ylabel('Probability')
-    plt.xlim(xmin=500, xmax=3500)
+    plt.xlim(xmin=600, xmax=3500)
     plt.ylim(ymin=(1.0/1000000), ymax=1.0)
     plt.savefig(args.folderOUT + 'spectrum_mixed_' + add + '.pdf', bbox_inches='tight')
     plt.close()
@@ -675,6 +676,7 @@ def final_plots(folderOUT, obs):
         plt.ylabel('Loss [keV$^2$]')
         plt.grid(True, which='both')
         # plt.ylim(ymin=7.e2, ymax=2.e4)
+        plt.xlim(xmin=0)
         plt.gca().set_yscale('log')
         plt.legend(loc="best")
         plt.savefig(folderOUT + 'loss.pdf', bbox_inches='tight')
@@ -685,6 +687,7 @@ def final_plots(folderOUT, obs):
         plt.plot(epoch, obs_sort['val_mean_absolute_error'], label='Validation set')
         plt.grid(True)
         # plt.ylim(ymin=0.0, ymax=100.0)
+        plt.xlim(xmin=0)
         plt.legend(loc="best")
         plt.xlabel('Training time [epoch]')
         plt.ylabel('Mean absolute error [keV]')
@@ -707,7 +710,7 @@ def final_plots(folderOUT, obs):
     plt.errorbar(epoch, obs_sort['peak_sig'][:,0], xerr=0.5, yerr=obs_sort['peak_sig'][:,1], fmt="none", lw=2)
     plt.grid(True)
     plt.xlim(xmin=0)
-    plt.ylim(ymin=0)
+    plt.ylim(ymin=20, ymax=80)
     plt.xlabel('Epoch')
     plt.ylabel('Reconstructed Photopeak Width [keV]')
     plt.savefig(folderOUT + '2prediction-spectrum/ZZZ_Width.pdf', bbox_inches='tight')
@@ -729,7 +732,7 @@ def final_plots(folderOUT, obs):
     plt.ylabel('Residual Width [keV]')
     plt.grid(True)
     plt.xlim(xmin=0)
-    plt.ylim(ymin=0)
+    plt.ylim(ymin=20, ymax=80)
     plt.savefig(folderOUT + '4residual-histo/ZZZ_Width.pdf', bbox_inches='tight')
     plt.clf()
     plt.close()

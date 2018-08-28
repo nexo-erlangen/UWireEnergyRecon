@@ -1,11 +1,13 @@
-cd #!/bin/bash
+#!/bin/bash
+
+cd
 #Ordner auf dem HPC_DATA Server am ECAP
 #SRC_DIR=rsync://131.188.161.205/ECAP_HPC_NEXO/DeepLearning/Th_Study_Uwire/Co60_Wfs_SS+MS_S5_Data/
 #DEST_DIR=/home/woody/capm/sn0515/PhD/Th_U-Wire/Co60_Wfs_SS+MS_S5_Data/
 SCRATCH=/scratchssd/sn0515/Co60_WFs_S5_MC/
 
-DEST_DIR=rsync://131.188.161.205/ECAP_HPC_NEXO/DeepLearning/Th_Study_Uwire/Co60_Wfs_SS+MS_S5_Data/
-SRC_DIR=/home/woody/capm/sn0515/PhD/Th_U-Wire/Co60_Wfs_SS+MS_S5_Data/
+DEST_DIR=rsync://131.188.161.205/ECAP_HPC_NEXO/DeepLearning/Th_Study_Uwire/Uniform_Wfs_SS+MS_S5_MC/
+SRC_DIR=/home/vault/capm/sn0515/PhD/Th_U-Wire/Data_MC/Uniform_Wfs_SS+MS_S5_MC/
 
 echo
 echo "Copying file:"

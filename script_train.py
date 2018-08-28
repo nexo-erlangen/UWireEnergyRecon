@@ -11,19 +11,17 @@ import script_plot as plot
 
 def main():
     args, files = make_organize()
-    # frac_train = {'thss': 0.0, 'thms': 0.975, 'rass': 0.0, 'rams': 0.0, 'coss': 0.0, 'coms': 0.0, 'gass': 0.0, 'gams': 0.0, 'unss': 0.0, 'unms': 0.0} #th training
-    # frac_val   = {'thss': 0.0, 'thms': 0.025, 'rass': 0.0, 'rams': 0.0, 'coss': 0.0, 'coms': 0.0, 'gass': 0.0, 'gams': 0.0, 'unss': 0.0, 'unms': 0.0}
-    # frac_train = {'thss': 0.0, 'thms': 0.0, 'rass': 0.0, 'rams': 0.0, 'coss': 0.0, 'coms': 0.0, 'gass': 0.0, 'gams': 0.0, 'unss': 0.0, 'unms': 0.95} #normal
-    # frac_val   = {'thss': 0.0, 'thms': 0.0, 'rass': 0.0, 'rams': 0.0, 'coss': 0.0, 'coms': 0.0, 'gass': 0.0, 'gams': 0.0, 'unss': 0.0, 'unms': 0.05}
-    # # frac_train = {'thss': 0.0, 'thms': 0.0, 'rass': 0.0, 'rams': 0.0, 'coss': 0.0, 'coms': 0.0, 'gass': 0.0, 'gams': 0.0, 'unss': 0.0, 'unms': 0.8}  # normal + test
-    # # frac_val = {'thss': 0.0, 'thms': 0.0, 'rass': 0.0, 'rams': 0.0, 'coss': 0.0, 'coms': 0.0, 'gass': 0.0, 'gams': 0.0, 'unss': 0.0, 'unms': 0.2}
-    # splitted_files = split_data(args, files, frac_train=frac_train, frac_val=frac_val)
-    #
-    # plot.get_energy_spectrum_mixed(args, splitted_files['train'], add='train')
-    # plot.get_energy_spectrum_mixed(args, splitted_files['val'], add='val')
-    # plot.get_energy_spectrum_mixed(args, files, add='all')
-    #
-    # train_model(args, splitted_files, get_model(args), args.nb_batch * args.nb_GPU)
+    frac_train = {'thss': 0.0, 'thms': 0.0, 'rass': 0.0, 'rams': 0.0, 'coss': 0.0, 'coms': 0.0, 'gass': 0.0, 'gams': 0.0, 'unss': 0.0, 'unms': 0.95} #normal
+    frac_val   = {'thss': 0.0, 'thms': 0.0, 'rass': 0.0, 'rams': 0.0, 'coss': 0.0, 'coms': 0.0, 'gass': 0.0, 'gams': 0.0, 'unss': 0.0, 'unms': 0.05}
+    # frac_train = {'thss': 0.0, 'thms': 0.0, 'rass': 0.0, 'rams': 0.0, 'coss': 0.0, 'coms': 0.0, 'gass': 0.0, 'gams': 0.0, 'unss': 0.0, 'unms': 0.05}
+    # frac_val = {'thss': 0.0, 'thms': 0.0, 'rass': 0.0, 'rams': 0.0, 'coss': 0.0, 'coms': 0.0, 'gass': 0.0, 'gams': 0.0, 'unss': 0.0, 'unms': 0.05}
+    splitted_files = split_data(args, files, frac_train=frac_train, frac_val=frac_val)
+
+    plot.get_energy_spectrum_mixed(args, splitted_files['train'], add='train')
+    plot.get_energy_spectrum_mixed(args, splitted_files['val'], add='val')
+    plot.get_energy_spectrum_mixed(args, files, add='all')
+
+    train_model(args, splitted_files, get_model(args), args.nb_batch * args.nb_GPU)
 
     print 'final plots \t start'
     plot.final_plots(folderOUT=args.folderOUT, obs=pickle.load(open(args.folderOUT + "save.p", "rb")))
@@ -134,16 +132,31 @@ def num_events(files):
 def generate_event(files):
     import random
     while 1:
-        random.shuffle(files)
+        random.shuffle(files)  # TODO maybe omit in future? # TODO shuffle events between files
         for filename in files:
-            f = h5py.File(str(filename), 'r')
+            f = h5py.File(str(filename), "r")
             X_True_i = np.asarray(f.get('trueEnergy'))
-            wfs_i = np.asarray(f.get('wfs'))
-            f.close()
             lst = range(len(X_True_i))
             random.shuffle(lst)
             for i in lst:
-                yield (wfs_i[i], X_True_i[i])
+                xs_i = f['wfs'][ i ]
+                xs_i = np.asarray(np.split(xs_i, 2, axis=1))
+                yield (xs_i, X_True_i[i])
+            f.close()
+
+# def generate_event(files):
+#     import random
+#     while 1:
+#         random.shuffle(files)
+#         for filename in files:
+#             f = h5py.File(str(filename), 'r')
+#             X_True_i = np.asarray(f.get('trueEnergy'))
+#             wfs_i = np.asarray(f.get('wfs'))
+#             f.close()
+#             lst = range(len(X_True_i))
+#             random.shuffle(lst)
+#             for i in lst:
+#                 yield (wfs_i[i], X_True_i[i])
 
 def generate_batch(generator, batchSize):
     while 1:
@@ -152,7 +165,9 @@ def generate_batch(generator, batchSize):
             temp = generator.next()
             X.append(temp[0])
             Y.append(temp[1])
-        yield (np.asarray(X), np.asarray(Y))
+        X = np.swapaxes(np.asarray(X), 0, 1)
+        yield (list(X), np.asarray(Y))
+        # yield (np.asarray(X), np.asarray(Y))
 
 def generate_batch_mixed(generator, batchSize, numEvents):
     import random
@@ -166,7 +181,9 @@ def generate_batch_mixed(generator, batchSize, numEvents):
             X.append(temp[0])
             Y.append(temp[1])
             if len(Y)==batchSize:
-                yield (np.asarray(X), np.asarray(Y))
+                # yield (np.asarray(X), np.asarray(Y))
+                X = np.swapaxes(np.asarray(X), 0, 1)
+                yield (list(X), np.asarray(Y))
                 X, Y = [], []
 
 def predict_energy(model, generator):
@@ -182,17 +199,17 @@ def generate_event_reconstruction(files):
             f = h5py.File(str(filename), 'r')
             X_True_i = np.asarray(f.get('trueEnergy'))
             X_EXO_i = np.asarray(f.get('reconEnergy'))
-            wfs_i = np.asarray(f.get('wfs'))
             isSS_i = ~np.asarray(f.get('isSS'))  # inverted because of logic error in file production
-            f.close()
             lst = range(len(X_True_i))
             random.shuffle(lst)
             for i in lst:
                 isSS = isSS_i[i]
                 X_True = X_True_i[i]
                 X_EXO = X_EXO_i[i]
-                wfs = wfs_i[i]
-                yield (wfs, X_True, X_EXO, isSS)
+                xs_i = f['wfs'][ i ]
+                xs_i = np.asarray(np.split(xs_i, 2, axis=1))
+                yield (xs_i, X_True, X_EXO, isSS)
+            f.close()
 
 def generate_batch_reconstruction(generator, batchSize):
     while 1:
@@ -203,7 +220,9 @@ def generate_batch_reconstruction(generator, batchSize):
             Y.append(temp[1])
             Z.append(temp[2])
             SS.append(temp[3])
-        yield (np.asarray(X), np.asarray(Y), np.asarray(Z), np.asarray(SS))
+        X = np.swapaxes(np.asarray(X), 0, 1)
+        yield (list(X), np.asarray(Y), np.asarray(Z), np.asarray(SS))
+        # yield (np.asarray(X), np.asarray(Y), np.asarray(Z), np.asarray(SS))
 
 def predict_energy_reconstruction(model, generator):
     E_CNN_wfs, E_True, E_EXO, isSS = generator.next()
@@ -318,54 +337,259 @@ class Histories(callbacks.Callback):
 # Define model
 # ----------------------------------------------------------
 def get_model(args):
+    def def_shared_model_default():
+        from keras.models import Model
+        from keras.layers import Input
+        from keras.layers import Dense
+        from keras.layers import Flatten
+        from keras.layers.convolutional import Conv2D
+        from keras.layers.pooling import MaxPooling2D
+        from keras.layers.merge import concatenate
+        from keras import regularizers
+
+        regu = regularizers.l2(1.e-2)
+        init = "glorot_uniform"
+        act = "relu"
+        padding = "same"
+
+        # Input layers
+        visible_1 = Input(shape=(1024, 38, 1), name='Wire_1')
+        visible_2 = Input(shape=(1024, 38, 1), name='Wire_2')
+
+        # Define U-wire shared layers
+        shared_conv_1 = Conv2D(16, kernel_size=(5, 3), name='Shared_1', padding=padding, kernel_initializer=init,
+                               activation=act, kernel_regularizer=regu)
+        shared_pooling_1 = MaxPooling2D(pool_size=(4, 2), name='Shared_2', padding=padding)
+        shared_conv_2 = Conv2D(32, kernel_size=(5, 3), name='Shared_3', padding=padding, kernel_initializer=init,
+                               activation=act, kernel_regularizer=regu)
+        shared_pooling_2 = MaxPooling2D(pool_size=(4, 2), name='Shared_4', padding=padding)
+        shared_conv_3 = Conv2D(64, kernel_size=(3, 3), name='Shared_5', padding=padding, kernel_initializer=init,
+                               activation=act, kernel_regularizer=regu)
+        shared_pooling_3 = MaxPooling2D(pool_size=(2, 2), name='Shared_6', padding=padding)
+        shared_conv_4 = Conv2D(128, kernel_size=(3, 3), name='Shared_7', padding=padding, kernel_initializer=init,
+                               activation=act, kernel_regularizer=regu)
+        shared_pooling_4 = MaxPooling2D(pool_size=(2, 2), name='Shared_8', padding=padding)
+        shared_conv_5 = Conv2D(256, kernel_size=(3, 3), name='Shared_9', padding=padding, kernel_initializer=init,
+                               activation=act, kernel_regularizer=regu)
+        shared_pooling_5 = MaxPooling2D(pool_size=(2, 2), name='Shared_10', padding=padding)
+        shared_conv_6 = Conv2D(256, kernel_size=(3, 3), name='Shared_11', padding=padding, kernel_initializer=init,
+                               activation=act, kernel_regularizer=regu)
+        shared_pooling_6 = MaxPooling2D(pool_size=(2, 2), name='Shared_12', padding=padding)
+
+        # U-wire feature layers
+        encoded_1_1 = shared_conv_1(visible_1)
+        encoded_1_2 = shared_conv_1(visible_2)
+        pooled_1_1 = shared_pooling_1(encoded_1_1)
+        pooled_1_2 = shared_pooling_1(encoded_1_2)
+
+        encoded_2_1 = shared_conv_2(pooled_1_1)
+        encoded_2_2 = shared_conv_2(pooled_1_2)
+        pooled_2_1 = shared_pooling_2(encoded_2_1)
+        pooled_2_2 = shared_pooling_2(encoded_2_2)
+
+        encoded_3_1 = shared_conv_3(pooled_2_1)
+        encoded_3_2 = shared_conv_3(pooled_2_2)
+        pooled_3_1 = shared_pooling_3(encoded_3_1)
+        pooled_3_2 = shared_pooling_3(encoded_3_2)
+
+        encoded_4_1 = shared_conv_4(pooled_3_1)
+        encoded_4_2 = shared_conv_4(pooled_3_2)
+        pooled_4_1 = shared_pooling_4(encoded_4_1)
+        pooled_4_2 = shared_pooling_4(encoded_4_2)
+
+        encoded_5_1 = shared_conv_5(pooled_4_1)
+        encoded_5_2 = shared_conv_5(pooled_4_2)
+        pooled_5_1 = shared_pooling_5(encoded_5_1)
+        pooled_5_2 = shared_pooling_5(encoded_5_2)
+
+        encoded_6_1 = shared_conv_6(pooled_5_1)
+        encoded_6_2 = shared_conv_6(pooled_5_2)
+        pooled_6_1 = shared_pooling_6(encoded_6_1)
+        pooled_6_2 = shared_pooling_6(encoded_6_2)
+
+        shared_flat = Flatten(name='flat1')
+
+        # Flatten
+        flat_1 = shared_flat(pooled_6_1)
+        flat_2 = shared_flat(pooled_6_2)
+
+        # Define shared Dense Layers
+        shared_dense_1 = Dense(32, name='Shared_1_Dense', activation=act, kernel_initializer=init,
+                               kernel_regularizer=regu)  # 32
+        shared_dense_2 = Dense(8, name='Shared_2_Dense', activation=act, kernel_initializer=init,
+                               kernel_regularizer=regu)  # 8
+
+        # Dense Layers
+        dense_1_1 = shared_dense_1(flat_1)
+        dense_1_2 = shared_dense_1(flat_2)
+
+        dense_2_1 = shared_dense_2(dense_1_1)
+        dense_2_2 = shared_dense_2(dense_1_2)
+
+        # Merge Dense Layers
+        merge_1_2 = concatenate([dense_2_1, dense_2_2], name='Flat_1_and_2')
+
+        # Output
+        output = Dense(1, name='Output', activation=act, kernel_initializer=init)(merge_1_2)
+
+        return Model(inputs=[visible_1, visible_2], outputs=[output])
+
+    def def_shared_model():
+        from keras.models import Model
+        from keras.layers import Input
+        from keras.layers import Dense
+        from keras.layers import Flatten
+        from keras.layers.convolutional import Conv2D
+        from keras.layers.pooling import MaxPooling2D
+        from keras.layers.merge import concatenate, add
+        from keras import regularizers
+
+        regu = regularizers.l2(1.e-2)
+        init = "glorot_uniform"
+        act = "relu"
+        padding = "same"
+
+        # Input layers
+        visible_1 = Input(shape=(1024, 38, 1), name='Wire_1')
+        visible_2 = Input(shape=(1024, 38, 1), name='Wire_2')
+
+        # Define U-wire shared layers
+        shared_conv_1 = Conv2D(16 , kernel_size=(5, 3),   name='Shared_1',  padding=padding, kernel_initializer=init, activation=act, kernel_regularizer=regu)
+        shared_conv_888 = Conv2D(16, kernel_size=(5, 3), name='Shared_888', padding=padding, kernel_initializer=init, activation=act, kernel_regularizer=regu)
+        shared_pooling_1 = MaxPooling2D(pool_size=(4, 1), name='Shared_2',  padding=padding) #from (4,2)
+        shared_conv_2 = Conv2D(32 , kernel_size=(5, 3),   name='Shared_3',  padding=padding, kernel_initializer=init, activation=act, kernel_regularizer=regu)
+        shared_conv_777 = Conv2D(32, kernel_size=(5, 3), name='Shared_777', padding=padding, kernel_initializer=init, activation=act, kernel_regularizer=regu)
+        shared_pooling_2 = MaxPooling2D(pool_size=(4, 2), name='Shared_4',  padding=padding)
+        shared_conv_3 = Conv2D(64 , kernel_size=(3, 3),   name='Shared_5',  padding=padding, kernel_initializer=init, activation=act, kernel_regularizer=regu)
+        shared_conv_666 = Conv2D(64, kernel_size=(3, 3), name='Shared_666', padding=padding, kernel_initializer=init,
+                               activation=act, kernel_regularizer=regu)
+        shared_pooling_3 = MaxPooling2D(pool_size=(2, 2), name='Shared_6',  padding=padding)
+        shared_conv_4 = Conv2D(128, kernel_size=(3, 3),   name='Shared_7',  padding=padding, kernel_initializer=init, activation=act, kernel_regularizer=regu)
+        shared_conv_8 = Conv2D(128, kernel_size=(3, 3), name='Shared_999', padding=padding, kernel_initializer=init, activation=act, kernel_regularizer=regu)
+        shared_pooling_4 = MaxPooling2D(pool_size=(2, 2), name='Shared_8',  padding=padding)
+        shared_conv_5 = Conv2D(256, kernel_size=(3, 3),   name='Shared_9',  padding=padding, kernel_initializer=init, activation=act, kernel_regularizer=regu)
+        shared_pooling_5 = MaxPooling2D(pool_size=(2, 2), name='Shared_10', padding=padding)
+        shared_conv_6 = Conv2D(256, kernel_size=(3, 3),   name='Shared_11', padding=padding, kernel_initializer=init, activation=act, kernel_regularizer=regu)
+        shared_pooling_6 = MaxPooling2D(pool_size=(2, 2), name='Shared_12', padding=padding)
+
+        # U-wire feature layers
+        encoded_1_1 = shared_conv_1(visible_1)
+        encoded_1_2 = shared_conv_1(visible_2)
+        encoded_888_1 = shared_conv_888(encoded_1_1)
+        encoded_888_2 = shared_conv_888(encoded_1_2)
+        pooled_1_1 = shared_pooling_1(encoded_888_1)
+        pooled_1_2 = shared_pooling_1(encoded_888_2)
+
+        encoded_2_1 = shared_conv_2(pooled_1_1)
+        encoded_2_2 = shared_conv_2(pooled_1_2)
+        encoded_7_1 = shared_conv_777(encoded_2_1)
+        encoded_7_2 = shared_conv_777(encoded_2_2)
+        pooled_2_1 = shared_pooling_2(encoded_7_1)
+        pooled_2_2 = shared_pooling_2(encoded_7_2)
+
+        encoded_3_1 = shared_conv_3(pooled_2_1)
+        encoded_3_2 = shared_conv_3(pooled_2_2)
+        encoded_6_1 = shared_conv_666(encoded_3_1)
+        encoded_6_2 = shared_conv_666(encoded_3_2)
+        pooled_3_1 = shared_pooling_3(encoded_6_1)
+        pooled_3_2 = shared_pooling_3(encoded_6_2)
+
+        encoded_4_1 = shared_conv_4(pooled_3_1)
+        encoded_4_2 = shared_conv_4(pooled_3_2)
+        encoded_8_1 = shared_conv_8(encoded_4_1)
+        encoded_8_2 = shared_conv_8(encoded_4_2)
+        pooled_4_1 = shared_pooling_4(encoded_8_1)
+        pooled_4_2 = shared_pooling_4(encoded_8_2)
+
+        encoded_5_1 = shared_conv_5(pooled_4_1)
+        encoded_5_2 = shared_conv_5(pooled_4_2)
+        pooled_5_1 = shared_pooling_5(encoded_5_1)
+        pooled_5_2 = shared_pooling_5(encoded_5_2)
+
+        encoded_6_1 = shared_conv_6(pooled_5_1)
+        encoded_6_2 = shared_conv_6(pooled_5_2)
+        pooled_6_1 = shared_pooling_6(encoded_6_1)
+        pooled_6_2 = shared_pooling_6(encoded_6_2)
+
+        shared_flat = Flatten(name='flat1')
+
+        # Flatten
+        flat_1 = shared_flat(pooled_6_1)
+        flat_2 = shared_flat(pooled_6_2)
+
+
+        # Define shared Dense Layers
+        shared_dense_1 = Dense(32, name='Shared_1_Dense', activation=act, kernel_initializer=init, kernel_regularizer=regu) #32
+        shared_dense_2 = Dense(8,  name='Shared_2_Dense', activation=act, kernel_initializer=init, kernel_regularizer=regu) #8
+
+        # Dense Layers
+        dense_1_1 = shared_dense_1(flat_1)
+        dense_1_2 = shared_dense_1(flat_2)
+
+        dense_2_1 = shared_dense_2(dense_1_1)
+        dense_2_2 = shared_dense_2(dense_1_2)
+
+        # Merge Dense Layers
+        #merge_1_2 = concatenate([dense_2_1, dense_2_2], name='Flat_1_and_2')
+        merge_1_2 = add([dense_2_1, dense_2_2], name='Flat_1_and_2')
+
+        # Output
+        output = Dense(1, name='Output', activation=act, kernel_initializer=init)(merge_1_2)
+
+        return Model(inputs=[visible_1, visible_2], outputs=[output])
+
+
     def def_model():
         from keras.models import Sequential
-        from keras.layers import Dense, Dropout, Activation, Flatten, Convolution2D, MaxPooling2D
-        from keras.regularizers import l2, l1, l1l2
+        from keras.layers import Dense, Dropout, Activation, Flatten, Conv2D, MaxPooling2D
+        from keras.regularizers import l2, l1
 
         init = "glorot_uniform"
         activation = "relu"
         padding = "same"
         regul = l2(1.e-2)
         model = Sequential()
+
         # convolution part
-        model.add(Convolution2D(16, 5, 3, border_mode=padding, init=init, W_regularizer=regul, input_shape=(1024, 76, 1)))
+        model.add(Conv2D(16, kernel_size=(5, 3), padding=padding, kernel_initializer=init, kernel_regularizer=regul, input_shape=(1024, 76, 1)))
         model.add(Activation(activation))
-        model.add(MaxPooling2D((4, 2), border_mode=padding))
+        model.add(MaxPooling2D((4, 2), padding=padding))
 
-        model.add(Convolution2D(32, 5, 3, border_mode=padding, init=init, W_regularizer=regul))
+        model.add(Conv2D(32, kernel_size=(5, 3), padding=padding, kernel_initializer=init, kernel_regularizer=regul))
         model.add(Activation(activation))
-        model.add(MaxPooling2D((4, 2), border_mode=padding))
+        model.add(MaxPooling2D((4, 2), padding=padding))
 
-        model.add(Convolution2D(64, 3, 3, border_mode=padding, init=init, W_regularizer=regul))
+        model.add(Conv2D(64, kernel_size=(3, 3), padding=padding, kernel_initializer=init, kernel_regularizer=regul))
         model.add(Activation(activation))
-        model.add(MaxPooling2D((2, 2), border_mode=padding))
+        model.add(MaxPooling2D((2, 2), padding=padding))
 
-        model.add(Convolution2D(128, 3, 3, border_mode=padding, init=init, W_regularizer=regul))
+        model.add(Conv2D(128, kernel_size=(3, 3), padding=padding, kernel_initializer=init, kernel_regularizer=regul))
         model.add(Activation(activation))
-        model.add(MaxPooling2D((2, 2), border_mode=padding))
+        model.add(MaxPooling2D((2, 2), padding=padding))
 
-        model.add(Convolution2D(256, 3, 3, border_mode=padding, init=init, W_regularizer=regul))
+        model.add(Conv2D(256, kernel_size=(3, 3), padding=padding, kernel_initializer=init, kernel_regularizer=regul))
         model.add(Activation(activation))
-        model.add(MaxPooling2D((2, 2), border_mode=padding))
+        model.add(MaxPooling2D((2, 2), padding=padding))
 
-        model.add(Convolution2D(256, 3, 3, border_mode=padding, init=init, W_regularizer=regul))
+        model.add(Conv2D(256, kernel_size=(3, 3), padding=padding, kernel_initializer=init, kernel_regularizer=regul))
         model.add(Activation(activation))
-        model.add(MaxPooling2D((2, 2), border_mode=padding))
+        model.add(MaxPooling2D((2, 2), padding=padding))
 
         # regression part
         model.add(Flatten())
-        model.add(Dense(32, activation=activation, init=init, W_regularizer=regul))
-        model.add(Dense(8, activation=activation, init=init, W_regularizer=regul))
-        model.add(Dense(1 , activation=activation, init=init))
+        model.add(Dense(32, activation=activation, kernel_initializer=init, kernel_regularizer=regul))
+        model.add(Dense(8, activation=activation, kernel_initializer=init, kernel_regularizer=regul))
+        model.add(Dense(1 , activation=activation, kernel_initializer=init))
         return model
 
     if not args.resume:
         from keras import optimizers
         print "===================================== new Model =====================================\n"
-        model = def_model()
+        # model = def_model()
+        model = def_shared_model()
         epoch_start = 0
-        optimizer = optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+        # optimizer = optimizers.Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0)  # normal
+        optimizer = optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0)  # Test
         model.compile(
             loss='mean_squared_error',
             optimizer=optimizer,
@@ -390,9 +614,22 @@ def get_model(args):
         except:
             print "\t\tMODEL NOT FOUND!\n"
             exit()
+
+    from keras import backend as K
+    print 'Learning Rate:\t', K.get_value(model.optimizer.lr)
+
     print "\nFirst Epoch:\t", epoch_start
     print model.summary(), "\n"
     print "\n"
+
+    # plot model, install missing packages with conda install if it throws a module error
+    from keras import utils as ksu
+    try:
+        ksu.plot_model(model, to_file=args.folderOUT+'/plot_model.png', show_shapes=True, show_layer_names=True)
+    except OSError:
+        print 'could not produce plot_model.png ---- run generate_model_plot on CPU\n'
+        save_plot_model_script(args.folderOUT)
+
     return model, epoch_start
 
 # ----------------------------------------------------------
@@ -414,20 +651,28 @@ def train_model(args, files, (model, epoch_start), batchSize):
 
     model.save(args.folderOUT + "models/model-initial.hdf5")
     model.save_weights(args.folderOUT + "models/weights-initial.hdf5")
+
+    train_steps_per_epoch = int(sum(numEvents_train.values()) / batchSize)
+    validation_steps = int(sum(numEvents_val.values()) / batchSize)
+    print 'training steps:\t\t', train_steps_per_epoch
+    print 'validation steps:\t', validation_steps
+
     print 'training los'
     model.fit_generator(
         generate_batch_mixed(gen_train, batchSize, numEvents_train),
-        samples_per_epoch=plot.round_down(sum(numEvents_train.values()), batchSize),
-        nb_epoch=args.nb_epoch+epoch_start,
-        verbose=1,
+        steps_per_epoch=train_steps_per_epoch,
+        epochs=args.nb_epoch+epoch_start,
+        verbose=2,
         validation_data=generate_batch_mixed(gen_val, batchSize, numEvents_val),
-        nb_val_samples=plot.round_down(sum(numEvents_val.values())  , batchSize),
+        validation_steps=validation_steps,
         initial_epoch=epoch_start,
         callbacks=[
             callbacks.CSVLogger(args.folderOUT + 'history.csv', append=args.resume),
             callbacks.ModelCheckpoint(args.folderOUT + 'models/weights-{epoch:03d}.hdf5', save_weights_only=True, period=int(args.nb_epoch/100)),
+            callbacks.LearningRateScheduler(LRschedule_stepdecay, verbose=1),
             Histories(args, files)
         ])
+
     print 'training stop'
     model.save(args.folderOUT+"models/model-final.hdf5")
     model.save_weights(args.folderOUT+"models/weights-final.hdf5")
@@ -436,9 +681,36 @@ def train_model(args, files, (model, epoch_start), batchSize):
     print "\nElapsed time:\t%.2f minutes\tor rather\t%.2f hours\n" % (((end-start)/60.),((end-start)/60./60.))
 
     print 'Model performance\tloss\t\tmean_abs_err'
-    print '\tTrain:\t\t%.4f\t%.4f'    % tuple(model.evaluate_generator(generate_batch(generate_event(np.concatenate(files['train'].values()).tolist()), batchSize), val_samples=128))
-    print '\tValid:\t\t%.4f\t%.4f'    % tuple(model.evaluate_generator(generate_batch(generate_event(np.concatenate(files['val'].values()).tolist())  , batchSize), val_samples=128))
+    print '\tTrain:\t\t%.4f\t%.4f'    % tuple(model.evaluate_generator(generate_batch(generate_event(np.concatenate(files['train'].values()).tolist()), batchSize), steps=100))
+    print '\tValid:\t\t%.4f\t%.4f'    % tuple(model.evaluate_generator(generate_batch(generate_event(np.concatenate(files['val'].values()).tolist())  , batchSize), steps=100))
     return model
+
+def LRschedule_stepdecay(epoch):
+    initial_lrate = 0.001
+    drop = 0.5
+    epochs_drop = 20. #10.0
+    lrate = initial_lrate * np.power(drop, np.floor((1 + epoch) / epochs_drop))
+    return lrate
+
+def save_plot_model_script(folderOUT):
+    """
+    Function for saving python script for producing model_plot.png
+    """
+    with open(folderOUT+'generate_model_plot.py', 'w') as f_out:
+        f_out.write('#!/usr/bin/env python' + '\n')
+        f_out.write('try:' + '\n')
+        f_out.write('\timport keras as ks' + '\n')
+        f_out.write('except ImportError:' + '\n')
+        f_out.write('\tprint "Keras not available. Activate tensorflow_cpu environment"' + '\n')
+        f_out.write('\traise SystemExit("=========== Error -- Exiting the script ===========")' + '\n')
+        f_out.write('model = ks.models.load_model("%smodels/model-initial.hdf5")'%(folderOUT) + '\n')
+        f_out.write('try:' + '\n')
+        f_out.write('\tks.utils.plot_model(model, to_file="%s/plot_model.png", show_shapes=True, show_layer_names=True)'%(folderOUT) + '\n')
+        f_out.write('except OSError:' + '\n')
+        f_out.write('\tprint "could not produce plot_model.png ---- try on CPU"' + '\n')
+        f_out.write('\traise SystemExit("=========== Error -- Exiting the script ===========")' + '\n')
+        f_out.write('print "=========== Generating Plot Finished ==========="' + '\n')
+        f_out.write('\n')
 
 # ----------------------------------------------------------
 # Program Start
