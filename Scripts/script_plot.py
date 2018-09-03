@@ -218,6 +218,7 @@ def plot_spectrum(data_CNN, data_EXO, peakpos, fit, fOUT, isMC, data_True=None):
     # plt.xlim(xmin=600, xmax=2600) #for Co60 and Ra226
     plt.xlim(xmin=600, xmax=3300) #for Th228
     plt.ylim(ymin=5.e-5, ymax=5.e-2)
+    # plt.ylim(ymin=0., ymax=1.5e-2)
     plt.grid(True)
     plt.gca().set_yscale('log')
     plt.savefig(fOUT, bbox_inches='tight')
@@ -529,11 +530,11 @@ def plot_anticorrelation_hist2d(E_x, E_y, name_x, name_y, name_title, fOUT):
 
 # rotation vs resolution
 def plot_rotationAngle_resolution(fOUT, data):
-    for E_List_str in ['E_EXO', 'E_CNN']:
-        if E_List_str == 'E_EXO':
+    for E_List_str in ['E_EXOPur', 'E_CNNPur']:
+        if E_List_str == 'E_EXOPur':
             col = 'firebrick'
             label = 'EXO Recon'
-        if E_List_str == 'E_CNN':
+        if E_List_str == 'E_CNNPur':
             col = 'blue'
             label = 'Neural Network'
         TestResolution_ss = np.array(data[E_List_str]['TestResolution_ss']) * 100.
@@ -710,7 +711,7 @@ def final_plots(folderOUT, obs):
     plt.errorbar(epoch, obs_sort['peak_sig'][:,0], xerr=0.5, yerr=obs_sort['peak_sig'][:,1], fmt="none", lw=2)
     plt.grid(True)
     plt.xlim(xmin=0)
-    plt.ylim(ymin=20, ymax=80)
+    plt.ylim(ymin=20, ymax=50)
     plt.xlabel('Epoch')
     plt.ylabel('Reconstructed Photopeak Width [keV]')
     plt.savefig(folderOUT + '2prediction-spectrum/ZZZ_Width.pdf', bbox_inches='tight')
@@ -732,7 +733,7 @@ def final_plots(folderOUT, obs):
     plt.ylabel('Residual Width [keV]')
     plt.grid(True)
     plt.xlim(xmin=0)
-    plt.ylim(ymin=20, ymax=80)
+    plt.ylim(ymin=20, ymax=50)
     plt.savefig(folderOUT + '4residual-histo/ZZZ_Width.pdf', bbox_inches='tight')
     plt.clf()
     plt.close()

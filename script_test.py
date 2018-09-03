@@ -53,7 +53,7 @@ def main():
                     print folderIN
                     data_rot = rotate_energy(folder=folderIN, data=data, epoch=epoch, new=args.new, self=False)
 
-                for E_List_str in ['E_CNN', 'E_EXO']:
+                for E_List_str in ['E_CNNPur', 'E_EXOPur']:
                     print 'Peak Position', E_List_str, 'SS', data_rot[E_List_str]['PeakPos_ss'][0]/2614.5
                     print 'Peak Position', E_List_str, 'MS', data_rot[E_List_str]['PeakPos_ms'][0]/2614.5
                     data_rot[E_List_str]['E_Rot_SS_cal'] = data_rot[E_List_str]['E_Rot_ss'] * (2614.5 / data_rot[E_List_str]['PeakPos_ss'][0])
@@ -61,13 +61,13 @@ def main():
                     data_rot[E_List_str]['E_Rot_SSMS_cal'] = np.concatenate((data_rot[E_List_str]['E_Rot_SS_cal'], data_rot[E_List_str]['E_Rot_MS_cal']))
 
                 for Multi in ['SS', 'MS', 'SSMS']:
-                    plot.plot_spectrum(data_CNN=data_rot['E_CNN']['E_Rot_' + Multi + '_cal'],
-                                       data_EXO=data_rot['E_EXO']['E_Rot_' + Multi + '_cal'], peakpos=2614.5, fit=('th' in args.source), isMC=False,
+                    plot.plot_spectrum(data_CNN=data_rot['E_CNNPur']['E_Rot_' + Multi + '_cal'],
+                                       data_EXO=data_rot['E_EXOPur']['E_Rot_' + Multi + '_cal'], peakpos=2614.5, fit=('th' in args.source), isMC=False,
                                        fOUT=(folderOUT + 'Rotation_spectrum_' + args.source + '_' + args.position + '_' + Multi + '_final.pdf'))
-                    plot.plot_scatter_hist2d(E_x=data_rot['E_EXO']['E_Rot_' + Multi + '_cal'], E_y=data_rot['E_CNN']['E_Rot_' + Multi + '_cal'],
+                    plot.plot_scatter_hist2d(E_x=data_rot['E_EXOPur']['E_Rot_' + Multi + '_cal'], E_y=data_rot['E_CNNPur']['E_Rot_' + Multi + '_cal'],
                                         name_x='EXO Recon', name_y='Neural Network',
                                         fOUT=(folderOUT + 'Rotation_scatter_' + args.source + '_' + args.position + '_' + Multi + '.pdf'))
-                    plot.plot_residual_hist2d(E_x=data_rot['E_EXO']['E_Rot_' + Multi + '_cal'], E_y=data_rot['E_CNN']['E_Rot_' + Multi + '_cal'],
+                    plot.plot_residual_hist2d(E_x=data_rot['E_EXOPur']['E_Rot_' + Multi + '_cal'], E_y=data_rot['E_CNNPur']['E_Rot_' + Multi + '_cal'],
                                          name_x='EXO Recon', name_y='Neural Network',
                                          fOUT=(folderOUT + 'Rotation_residual_' + args.source + '_' + args.position + '_' + Multi + '.pdf'))
 
@@ -190,7 +190,7 @@ def get_events(args, files, model, fOUT):
         if args.events > len(spec['E_CNN']): raise IOError
     except IOError:
         if model == None: print 'model not found and not events file found' ; exit()
-        E_CNN, E_EXO, E_True, E_Light, isSS = [], [], [], [], []
+        E_CNN, E_EXO, E_EXOPur, E_True, E_Light, isSS = [], [], [], [], [], []
         posX, posY, posZ = [], [], []
         misClu, misEne, recEneInd, numCC = [], [], [], []
         files_list = np.concatenate(files.values()).tolist()
@@ -210,7 +210,8 @@ def get_events(args, files, model, fOUT):
                 recEneInd.extend(recEneInd_temp)
                 numCC.extend(numCC_temp)
             if args.predict_data:
-                E_CNN_temp, E_EXO_temp, E_Light_temp, isSS_temp, posX_temp, posY_temp, posZ_temp = predict_energy_data(model, gen)
+                E_CNN_temp, E_EXO_temp, E_EXOPur_temp, E_Light_temp, isSS_temp, posX_temp, posY_temp, posZ_temp = predict_energy_data(model, gen)
+                E_EXOPur.extend(E_EXOPur_temp)
                 E_Light.extend(E_Light_temp)
             E_CNN.extend(E_CNN_temp)
             E_EXO.extend(E_EXO_temp)
@@ -218,12 +219,15 @@ def get_events(args, files, model, fOUT):
             posX.extend(posX_temp)
             posY.extend(posY_temp)
             posZ.extend(posZ_temp)
-        if args.predict_mc:     spec = {'E_CNN': np.asarray(E_CNN), 'E_EXO': np.asarray(E_EXO), 'E_True': np.asarray(E_True),
-                                        'isSS': np.asarray(isSS), 'posX': np.asarray(posX), 'posY': np.asarray(posY), 'posZ': np.asarray(posZ),
-                                        'missedCluster': np.asarray(misClu), 'missedEnergy': np.asarray(misEne),
-                                        'reconEnergyInd': np.asarray(recEneInd), 'numCC': np.asarray(numCC)}
-        if args.predict_data:   spec = {'E_CNN': np.asarray(E_CNN), 'E_EXO': np.asarray(E_EXO), 'E_Light': np.asarray(E_Light),
-                                        'isSS': np.asarray(isSS), 'posX': np.asarray(posX), 'posY': np.asarray(posY), 'posZ': np.asarray(posZ)}
+        if args.predict_mc:
+            spec = {'E_CNN': np.asarray(E_CNN), 'E_EXO': np.asarray(E_EXO), 'E_True': np.asarray(E_True),
+                    'isSS': np.asarray(isSS), 'posX': np.asarray(posX), 'posY': np.asarray(posY), 'posZ': np.asarray(posZ),
+                    'missedCluster': np.asarray(misClu), 'missedEnergy': np.asarray(misEne),
+                    'reconEnergyInd': np.asarray(recEneInd), 'numCC': np.asarray(numCC)}
+        if args.predict_data:
+            spec = {'E_CNN': np.asarray(E_CNN), 'E_EXO': np.asarray(E_EXO), 'E_EXOPur': np.asarray(E_EXOPur), 'E_Light': np.asarray(E_Light),
+                    'isSS': np.asarray(isSS), 'posX': np.asarray(posX), 'posY': np.asarray(posY), 'posZ': np.asarray(posZ)}
+            spec['E_CNNPur'] = get_purity_corretion(data=spec)
         pickle.dump(spec, open(fOUT, "wb"))
         print 'posX', len(posX), min(posX), max(posX)
         print 'posY', len(posY), min(posY), max(posY)
@@ -235,15 +239,16 @@ def get_events(args, files, model, fOUT):
             print 'numCC', len(numCC), min(numCC), max(numCC)
     return spec
 
+def get_purity_corretion(data):
+    # Combine lifetime correction factor from EXO CorrectedEnergy and EXO PurityCorrectedEnergy
+    # TODO check if this approach is valid for MS events
+    return data['E_CNN']*data['E_EXOPur']/data['E_EXO']
+
 def make_plots_data(folderOUT, dataIn, epoch, sources, position):
     fileOUT = epoch + '_' + sources + '_' + position + '_'
     name_CNN = 'DNN'
     name_EXO = 'EXO Recon'
     peakpos = 2614.5
-
-    print dataIn['isSS']
-
-    print dataIn['isSS'] == True
 
     if 'th' in sources and position=='S5':
         CalibrateSelf = True
@@ -253,7 +258,7 @@ def make_plots_data(folderOUT, dataIn, epoch, sources, position):
 
     data = {}
     data_Ref = {}
-    for E_List_str in ['E_CNN', 'E_EXO', 'E_Light']:
+    for E_List_str in ['E_CNN', 'E_EXO', 'E_CNNPur', 'E_EXOPur', 'E_Light']:
         data[E_List_str] = {'SS': dataIn[E_List_str][dataIn['isSS'] == True],
                             'MS': dataIn[E_List_str][dataIn['isSS'] == False],
                             'SSMS': dataIn[E_List_str]}
@@ -274,14 +279,16 @@ def make_plots_data(folderOUT, dataIn, epoch, sources, position):
     for Multi in ['SS', 'MS', 'SSMS', 'calib_SS', 'calib_MS', 'calib_SSMS']:
         plot.plot_spectrum(data_CNN=data['E_CNN'][Multi], data_EXO=data['E_EXO'][Multi], fit=('th' in sources), isMC=False,
                            peakpos=peakpos, fOUT=(folderOUT + fileOUT + 'spectrum_' + Multi + '.pdf'))
+        plot.plot_spectrum(data_CNN=data['E_CNNPur'][Multi], data_EXO=data['E_EXOPur'][Multi], fit=('th' in sources), isMC=False,
+                           peakpos=peakpos, fOUT=(folderOUT + fileOUT + 'spectrumPurity_' + Multi + '.pdf'))
         plot.plot_scatter_hist2d(E_x=data['E_EXO'][Multi], E_y=data['E_CNN'][Multi],
                                  name_x=name_EXO, name_y=name_CNN, fOUT=(folderOUT + fileOUT + 'scatter_hist2d_' + Multi + '.pdf'))
         plot.plot_residual_hist2d(E_x=data['E_EXO'][Multi], E_y=data['E_CNN'][Multi],
                                   name_x=name_EXO, name_y=name_CNN, fOUT=(folderOUT + fileOUT + 'residual_hist2d_' + Multi + '.pdf'))
-        plot.plot_anticorrelation_hist2d(E_x=data['E_EXO'][Multi], E_y=data['E_Light'][Multi],
-                                         name_x='Charge', name_y='Light', name_title=name_EXO, fOUT=(folderOUT + fileOUT + 'anticorrelation_Standard_' + Multi + '.pdf'))
-        plot.plot_anticorrelation_hist2d(E_x=data['E_CNN'][Multi], E_y=data['E_Light'][Multi],
-                                         name_x='Charge', name_y='Light', name_title=name_CNN, fOUT=(folderOUT + fileOUT + 'anticorrelation_ConvNN_' + Multi + '.pdf'))
+        plot.plot_anticorrelation_hist2d(E_x=data['E_EXOPur'][Multi], E_y=data['E_Light'][Multi],
+                                         name_x='PurityCorrectedCharge', name_y='Light', name_title=name_EXO, fOUT=(folderOUT + fileOUT + 'anticorrelation_Standard_' + Multi + '.pdf'))
+        plot.plot_anticorrelation_hist2d(E_x=data['E_CNNPur'][Multi], E_y=data['E_Light'][Multi],
+                                         name_x='PurityCorrectedCharge', name_y='Light', name_title=name_CNN, fOUT=(folderOUT + fileOUT + 'anticorrelation_ConvNN_' + Multi + '.pdf'))
 
     return
 
@@ -302,7 +309,7 @@ def rotate_energy(folder, data, epoch, new, self):
             ThetaToTry_fine = [ round(0.45 + 0.01 * i,3) for i in range(19) ]
             ThetaToTry_med  = [ round(0.40 + 0.02 * i,3) for i in range(18) ]
             ThetaToTry = sorted(set(ThetaToTry_fine + ThetaToTry_med + ThetaToTry_raw))
-            for E_List_str in ['E_CNN', 'E_EXO']:
+            for E_List_str in ['E_CNNPur', 'E_EXOPur']:
                 E_List = data[E_List_str]
                 E_List2D_ss = zip(E_List[data['isSS']==True] , E_Light[data['isSS']==True] )
                 E_List2D_ms = zip(E_List[data['isSS']==False], E_Light[data['isSS']==False])
@@ -315,7 +322,7 @@ def rotate_energy(folder, data, epoch, new, self):
     else:
         spec = pickle.load(open(file, "rb"))
         E_Light = data['E_Light']
-        for E_List_str in ['E_CNN', 'E_EXO']:
+        for E_List_str in ['E_CNNPur', 'E_EXOPur']:
             E_List = data[E_List_str]
             spec[E_List_str]['E_Rot_ss'] = E_List[data['isSS'] == True] * math.cos(spec[E_List_str]['Theta_ss'][0]) \
                                            + E_Light[data['isSS'] == True] * math.sin(spec[E_List_str]['Theta_ss'][0])
@@ -330,6 +337,7 @@ def generate_event_data(files):
         for filename in files:
             f = h5py.File(str(filename), 'r')
             Y_recon_array = np.asarray(f.get('reconEnergy'))
+            Y_reconPur_array = np.asarray(f.get('reconEnergyPurity'))
             Y_light_array = np.asarray(f.get('lightEnergy'))
             # X_init_array = np.asarray(f.get('wfs'))
             isSS_array = np.asarray(f.get('isSS'))
@@ -341,36 +349,38 @@ def generate_event_data(files):
             for i in lst:
                 isSS = isSS_array[i]
                 Y_recon = Y_recon_array[i]
+                Y_reconPur = Y_reconPur_array[i]
                 Y_light = Y_light_array[i]
                 xs_i = f['wfs'][i]
                 posX = posX_array[i]
                 posY = posY_array[i]
                 posZ = posZ_array[i]
                 xs_i = np.asarray(np.split(xs_i, 2, axis=1))
-                yield (xs_i, Y_recon, Y_light, isSS, posX, posY, posZ)
+                yield (xs_i, Y_recon, Y_reconPur, Y_light, isSS, posX, posY, posZ)
             f.close()
         print 'all files used. Re-iterating files'
 
 def generate_batch_data(generator, batchSize):
     while 1:
-        X, Y, Z, SS, posX, posY, posZ = [], [], [], [], [], [], []
+        X, Y, YPur, Z, SS, posX, posY, posZ = [], [], [], [], [], [], [], []
         for i in xrange(batchSize):
             temp = generator.next()
             X.append(temp[0])
             Y.append(temp[1])
-            Z.append(temp[2])
-            SS.append(temp[3])
-            posX.append(temp[4])
-            posY.append(temp[5])
-            posZ.append(temp[6])
+            YPur.append(temp[2])
+            Z.append(temp[3])
+            SS.append(temp[4])
+            posX.append(temp[5])
+            posY.append(temp[6])
+            posZ.append(temp[7])
         X = np.swapaxes(np.asarray(X), 0, 1)
-        yield (list(X), np.asarray(Y), np.asarray(Z), np.asarray(SS), np.asarray(posX), np.asarray(posY), np.asarray(posZ))
+        yield (list(X), np.asarray(Y), np.asarray(YPur), np.asarray(Z), np.asarray(SS), np.asarray(posX), np.asarray(posY), np.asarray(posZ))
         #yield (np.asarray(X), np.asarray(Y), np.asarray(Z), np.asarray(SS), np.asarray(posX), np.asarray(posY), np.asarray(posZ))
 
 def predict_energy_data(model, generator):
-    E_pred_wfs, E_recon, E_light, isSS, posX, posY, posZ = generator.next()
+    E_pred_wfs, E_recon, E_reconPur, E_light, isSS, posX, posY, posZ = generator.next()
     E_pred = np.asarray(model.predict(E_pred_wfs, 100)[:,0])
-    return (E_pred, E_recon, E_light, isSS, posX, posY, posZ)
+    return (E_pred, E_recon, E_reconPur, E_light, isSS, posX, posY, posZ)
 
 def generate_event_reconstruction(files):
     import random

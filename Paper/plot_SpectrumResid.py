@@ -14,8 +14,8 @@ plt.rc('font', size=BIGGER_SIZE)          # controls default text sizes
 
 def main():
     # FINAL NETWORK
-    Model_GOOD = "/180308-1100/180309-1055/180310-1553/180311-2206/180312-1917/180313-2220/"
-    Epoch_GOOD = 99
+    Model_GOOD = "/180802-1535/180803-1159/"
+    Epoch_GOOD = 80
     Source_GOOD = 'ga'
     Position_GOOD = 'S5'
 
@@ -41,40 +41,49 @@ def main():
     print 'folderIN_MC_GOOD\t', folderIN_MC_GOOD
     print 'fileIN_GOOD\t', fileIN_GOOD
 
-    data_MC_BAD = get_events(folderIN_MC_BAD + fileIN_BAD)
+    # data_MC_BAD = get_events(folderIN_MC_BAD + fileIN_BAD)
     data_MC_GOOD = get_events(folderIN_MC_GOOD + fileIN_GOOD)
 
-    print data_MC_BAD["E_True"].shape, data_MC_BAD["E_CNN"].shape, data_MC_BAD["E_CNN"].shape
+    # print data_MC_BAD["E_True"].shape, data_MC_BAD["E_CNN"].shape, data_MC_BAD["E_CNN"].shape
     print data_MC_GOOD["E_True"].shape, data_MC_GOOD["E_CNN"].shape, data_MC_GOOD["E_CNN"].shape
 
     if Calibration:
-        data_BAD = doCalibration(data_MC=data_MC_BAD)
+        # data_BAD = doCalibration(data_MC=data_MC_BAD)
         data_GOOD= doCalibration(data_MC=data_MC_GOOD)
 
         # for Multi in ['SS', 'MS', 'SSMS']:
         for Multi in ['SSMS', 'calib_SSMS']:
-            plot_predict(x_bad=data_BAD["E_True"][Multi], y_bad=data_BAD["E_CNN"][Multi],
-                         x_good=data_GOOD["E_True"][Multi], y_good=data_GOOD["E_CNN"][Multi],
-                         xlabel='True', ylabel_bad='DNN   ($^{228}$Th training)', ylabel_good='DNN (Uniform training)',
-                         ycolor_bad='green', ycolor_good='blue',
+            plot_predict(x_bad=data_GOOD["E_True"][Multi], y_bad=data_GOOD["E_CNN"][Multi],
+                         xlabel='True', ylabel_bad='DNN (Uniform training)',
+                         ycolor_bad='green',
                          fOUT=(folderOUT + "spectrum_" + Source_BAD + "ms_ConvNN_" + Epoch_BAD + "_" + Multi + ".pdf"))
-            plot_predict(x_bad=data_BAD["E_True"][Multi], y_bad=data_BAD["E_EXO"][Multi],
-                         x_good=data_GOOD["E_True"][Multi], y_good=data_GOOD["E_EXO"][Multi],
-                         xlabel='MC', ylabel_bad='Bad Conventional', ylabel_good='Good Conventional',
-                         ycolor_bad='green', ycolor_good='firebrick',
+            plot_predict(x_bad=data_GOOD["E_True"][Multi], y_bad=data_GOOD["E_EXO"][Multi],
+                         xlabel='MC', ylabel_bad='Good Conventional',
+                         ycolor_bad='green',
                          fOUT=(folderOUT + "spectrum_" + Source_BAD + "ms_Standard_" + Epoch_BAD + "_" + Multi + ".pdf"))
+            # plot_predict(x_bad=data_BAD["E_True"][Multi], y_bad=data_BAD["E_CNN"][Multi],
+            #              x_good=data_GOOD["E_True"][Multi], y_good=data_GOOD["E_CNN"][Multi],
+            #              xlabel='True', ylabel_bad='DNN   ($^{228}$Th training)', ylabel_good='DNN (Uniform training)',
+            #              ycolor_bad='green', ycolor_good='blue',
+            #              fOUT=(folderOUT + "spectrum_" + Source_BAD + "ms_ConvNN_" + Epoch_BAD + "_" + Multi + ".pdf"))
+            # plot_predict(x_bad=data_BAD["E_True"][Multi], y_bad=data_BAD["E_EXO"][Multi],
+            #              x_good=data_GOOD["E_True"][Multi], y_good=data_GOOD["E_EXO"][Multi],
+            #              xlabel='MC', ylabel_bad='Bad Conventional', ylabel_good='Good Conventional',
+            #              ycolor_bad='green', ycolor_good='firebrick',
+            #              fOUT=(
+            #              folderOUT + "spectrum_" + Source_BAD + "ms_Standard_" + Epoch_BAD + "_" + Multi + ".pdf"))
     else:
         fileOUT_MC_CNN = "spectrum_" + Source_BAD + "ms_ConvNN_" + Epoch_BAD + ".pdf"
         fileOUT_MC_Std = "spectrum_" + Source_BAD + "ms_Standard_" + Epoch_BAD + ".pdf"
 
-        plot_predict(x_bad=data_MC_BAD["E_True"], y_bad=data_MC_BAD["E_CNN"],
-                     x_good=data_MC_GOOD["E_True"], y_good=data_MC_GOOD["E_CNN"],
-                     xlabel='MC', ylabel_bad='Bad Neural Network', ylabel_good='Good Neural Network',
-                     ycolor_bad='green', ycolor_good='blue', fOUT=(folderOUT + fileOUT_MC_CNN))
-        plot_predict(x_bad=data_MC_BAD["E_True"], y_bad=data_MC_BAD["E_EXO"],
-                     x_good=data_MC_GOOD["E_True"], y_good=data_MC_GOOD["E_EXO"],
-                     xlabel='MC', ylabel_bad='Bad Conventional', ylabel_good='Good Conventional',
-                     ycolor_bad='firebrick', ycolor_good='blue', fOUT=(folderOUT + fileOUT_MC_Std))
+        # plot_predict(x_bad=data_MC_BAD["E_True"], y_bad=data_MC_BAD["E_CNN"],
+        #              x_good=data_MC_GOOD["E_True"], y_good=data_MC_GOOD["E_CNN"],
+        #              xlabel='MC', ylabel_bad='Bad Neural Network', ylabel_good='Good Neural Network',
+        #              ycolor_bad='green', ycolor_good='blue', fOUT=(folderOUT + fileOUT_MC_CNN))
+        # plot_predict(x_bad=data_MC_BAD["E_True"], y_bad=data_MC_BAD["E_EXO"],
+        #              x_good=data_MC_GOOD["E_True"], y_good=data_MC_GOOD["E_EXO"],
+        #              xlabel='MC', ylabel_bad='Bad Conventional', ylabel_good='Good Conventional',
+        #              ycolor_bad='firebrick', ycolor_good='blue', fOUT=(folderOUT + fileOUT_MC_Std))
 
     print '===================================== Program finished =============================='
 
@@ -104,15 +113,16 @@ def doCalibration(data_MC):
         data[E_List_str]['calib_SSMS'] = np.concatenate((data[E_List_str]['calib_SS'], data[E_List_str]['calib_MS']))
     return data
 
-def plot_predict(x_bad, y_bad, x_good, y_good, xlabel, ylabel_bad, ylabel_good, ycolor_bad, ycolor_good, fOUT):
+# def plot_predict(x_bad, y_bad, x_good, y_good, xlabel, ylabel_bad, ylabel_good, ycolor_bad, ycolor_good, fOUT):
+def plot_predict(x_bad, y_bad, xlabel, ylabel_bad, ycolor_bad, fOUT):
     if x_bad.size != y_bad.size: print 'arrays not same length. Press key' ; raw_input('')
-    if x_good.size != y_good.size: print 'arrays not same length. Press key'; raw_input('')
-    if sorted(x_bad) != sorted(x_good): print 'x arrays does not contain the same events. Press key'; raw_input('')
+    # if x_good.size != y_good.size: print 'arrays not same length. Press key'; raw_input('')
+    # if sorted(x_bad) != sorted(x_good): print 'x arrays does not contain the same events. Press key'; raw_input('')
 
     # Create figure
     histX_bad , bin_edges = np.histogram(x_bad , bins=1200, range=(0, 12000), density=False)
     histY_bad , bin_edges = np.histogram(y_bad , bins=1200, range=(0, 12000), density=False)
-    histY_good, bin_edges = np.histogram(y_good, bins=1200, range=(0, 12000), density=False)
+    # histY_good, bin_edges = np.histogram(y_good, bins=1200, range=(0, 12000), density=False)
     norm_factor = float(len(x_bad))
     bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
 
@@ -130,7 +140,8 @@ def plot_predict(x_bad, y_bad, x_good, y_good, xlabel, ylabel_bad, ylabel_good, 
 
     ax1.set(ylabel='Probability')
     # ax2.set(xlabel=xlabel + ' Energy [keV]', ylabel='Residual [keV]')
-    ax2.set(xlabel=xlabel + ' Energy [keV]', ylabel='(%s - %s) [keV]' % ('DNN ($^{228}$Th)', xlabel))
+    # ax2.set(xlabel=xlabel + ' Energy [keV]', ylabel='(%s - %s) [keV]' % ('DNN ($^{228}$Th)', xlabel))
+    ax2.set(xlabel=xlabel + ' Energy [keV]', ylabel='(%s - %s) [keV]' % ('DNN (Uni)', xlabel))
     ax1.set_xlim([lowE, upE])
     ax1.set_ylim([10.e-5, 10.e-2])
     ax2.set_ylim([-resE, resE])
@@ -150,7 +161,7 @@ def plot_predict(x_bad, y_bad, x_good, y_good, xlabel, ylabel_bad, ylabel_good, 
     ax1.fill_between(bin_centres, 0.0, histX_bad / norm_factor, facecolor='black', alpha=0.2, interpolate=True)
     ax1.plot(bin_centres, histX_bad / norm_factor, label=xlabel, color='k', lw=0.5)
     ax1.step(bin_centres, histY_bad / norm_factor, label=ylabel_bad , color=ycolor_bad , where='mid')
-    ax1.step(bin_centres, histY_good/ norm_factor, label=ylabel_good, color=ycolor_good, where='mid')
+    # ax1.step(bin_centres, histY_good/ norm_factor, label=ylabel_good, color=ycolor_good, where='mid')
     ax2.hexbin(x_bad, dE_bad, bins='log', extent=extent2, gridsize=(gridsize,gridsize/((upE-lowE)/(2*resE))), mincnt=1, cmap=plt.get_cmap('viridis'), linewidths=0.1)
     ax1.legend(loc='lower left')
     # plt.show()

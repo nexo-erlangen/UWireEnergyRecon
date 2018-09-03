@@ -26,8 +26,8 @@ def get_events(fileIN):
 
 def main():
     # FINAL NETWORK
-    Model = "/180308-1100/180309-1055/180310-1553/180311-2206/180312-1917/180313-2220/"
-    Epoch = 99
+    Model = "/180802-1535/180803-1159/"
+    Epoch = 80
     Source = 'th'
 
     # NETWORK W/ OVERTRAINING
@@ -94,7 +94,7 @@ def doPlot(trEXO, prEXO, trXv, prXv, fileOUT):
     elif n == 242692:
         std = 0.00143535042719889728365847124103744647895517934928155671154341885600985852221409602041218185480114163940637255786
     else:
-        std = 1.; print 'strange length. Press key'; raw_input('')
+        std = 0.; print 'strange length. Press key'; raw_input('')
 
     # make Figure
     fig = plt.figure()

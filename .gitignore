@@ -1,1 +1,6 @@
-*~
+*.pyc
+.*
+Data/
+Data_MC/
+MonteCarlo/
+usedInPaper/

@@ -13,8 +13,8 @@ def main():
     args, files = make_organize()
     frac_train = {'thss': 0.0, 'thms': 0.0, 'rass': 0.0, 'rams': 0.0, 'coss': 0.0, 'coms': 0.0, 'gass': 0.0, 'gams': 0.0, 'unss': 0.0, 'unms': 0.95} #normal
     frac_val   = {'thss': 0.0, 'thms': 0.0, 'rass': 0.0, 'rams': 0.0, 'coss': 0.0, 'coms': 0.0, 'gass': 0.0, 'gams': 0.0, 'unss': 0.0, 'unms': 0.05}
-    # frac_train = {'thss': 0.0, 'thms': 0.0, 'rass': 0.0, 'rams': 0.0, 'coss': 0.0, 'coms': 0.0, 'gass': 0.0, 'gams': 0.0, 'unss': 0.0, 'unms': 0.05}
-    # frac_val = {'thss': 0.0, 'thms': 0.0, 'rass': 0.0, 'rams': 0.0, 'coss': 0.0, 'coms': 0.0, 'gass': 0.0, 'gams': 0.0, 'unss': 0.0, 'unms': 0.05}
+    # frac_train = {'thss': 0.0, 'thms': 0.83, 'rass': 0.0, 'rams': 0.0, 'coss': 0.0, 'coms': 0.0, 'gass': 0.0, 'gams': 0.0, 'unss': 0.0, 'unms': 0.0}
+    # frac_val = {'thss': 0.0, 'thms': 0.17, 'rass': 0.0, 'rams': 0.0, 'coss': 0.0, 'coms': 0.0, 'gass': 0.0, 'gams': 0.0, 'unss': 0.0, 'unms': 0.0}
     splitted_files = split_data(args, files, frac_train=frac_train, frac_val=frac_val)
 
     plot.get_energy_spectrum_mixed(args, splitted_files['train'], add='train')
@@ -440,7 +440,7 @@ def get_model(args):
         from keras.layers import Dense
         from keras.layers import Flatten
         from keras.layers.convolutional import Conv2D
-        from keras.layers.pooling import MaxPooling2D
+        from keras.layers.pooling import MaxPooling2D, GlobalAveragePooling2D
         from keras.layers.merge import concatenate, add
         from keras import regularizers
 
@@ -508,30 +508,38 @@ def get_model(args):
 
         encoded_6_1 = shared_conv_6(pooled_5_1)
         encoded_6_2 = shared_conv_6(pooled_5_2)
-        pooled_6_1 = shared_pooling_6(encoded_6_1)
-        pooled_6_2 = shared_pooling_6(encoded_6_2)
-
-        shared_flat = Flatten(name='flat1')
-
-        # Flatten
-        flat_1 = shared_flat(pooled_6_1)
-        flat_2 = shared_flat(pooled_6_2)
+        # pooled_6_1 = shared_pooling_6(encoded_6_1)
+        # pooled_6_2 = shared_pooling_6(encoded_6_2)
 
 
-        # Define shared Dense Layers
-        shared_dense_1 = Dense(32, name='Shared_1_Dense', activation=act, kernel_initializer=init, kernel_regularizer=regu) #32
-        shared_dense_2 = Dense(8,  name='Shared_2_Dense', activation=act, kernel_initializer=init, kernel_regularizer=regu) #8
+#TEST
+        globAverPool = GlobalAveragePooling2D()
+        globAverPool_1 = globAverPool(encoded_6_1)
+        globAverPool_2 = globAverPool(encoded_6_2)
+        merge_1_2 = concatenate([ globAverPool_1,  globAverPool_2])
+#TEST
 
-        # Dense Layers
-        dense_1_1 = shared_dense_1(flat_1)
-        dense_1_2 = shared_dense_1(flat_2)
-
-        dense_2_1 = shared_dense_2(dense_1_1)
-        dense_2_2 = shared_dense_2(dense_1_2)
+        # shared_flat = Flatten(name='flat1')
+        #
+        # # Flatten
+        # flat_1 = shared_flat(pooled_6_1)
+        # flat_2 = shared_flat(pooled_6_2)
+        #
+        #
+        # # Define shared Dense Layers
+        # shared_dense_1 = Dense(32, name='Shared_1_Dense', activation=act, kernel_initializer=init, kernel_regularizer=regu) #32
+        # shared_dense_2 = Dense(8,  name='Shared_2_Dense', activation=act, kernel_initializer=init, kernel_regularizer=regu) #8
+        #
+        # # Dense Layers
+        # dense_1_1 = shared_dense_1(flat_1)
+        # dense_1_2 = shared_dense_1(flat_2)
+        #
+        # dense_2_1 = shared_dense_2(dense_1_1)
+        # dense_2_2 = shared_dense_2(dense_1_2)
 
         # Merge Dense Layers
         #merge_1_2 = concatenate([dense_2_1, dense_2_2], name='Flat_1_and_2')
-        merge_1_2 = add([dense_2_1, dense_2_2], name='Flat_1_and_2')
+        # merge_1_2 = add([dense_2_1, dense_2_2], name='Flat_1_and_2')
 
         # Output
         output = Dense(1, name='Output', activation=act, kernel_initializer=init)(merge_1_2)
@@ -610,7 +618,7 @@ def get_model(args):
                 epoch_start = 1+int(np.genfromtxt(args.folderOUT+'history.csv', delimiter=',', names=True)['epoch'][-1])
                 print epoch_start
             else:
-                epoch_start = 1+int(args.nb_weights)
+                epoch_start = int(args.nb_weights)
         except:
             print "\t\tMODEL NOT FOUND!\n"
             exit()
@@ -688,7 +696,7 @@ def train_model(args, files, (model, epoch_start), batchSize):
 def LRschedule_stepdecay(epoch):
     initial_lrate = 0.001
     drop = 0.5
-    epochs_drop = 20. #10.0
+    epochs_drop = 7. #10.0
     lrate = initial_lrate * np.power(drop, np.floor((1 + epoch) / epochs_drop))
     return lrate
 

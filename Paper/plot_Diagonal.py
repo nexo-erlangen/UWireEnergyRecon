@@ -15,8 +15,8 @@ plt.rc('font', size=BIGGER_SIZE)          # controls default text sizes
 
 def main():
     # DEFINE MODEL W/ OR W/O CALIBRATION
-    Model = "/180308-1100/180309-1055/180310-1553/180311-2206/180312-1917/180313-2220/"
-    Epoch = 99
+    Model = "/180802-1535/180803-1159/"
+    Epoch = 80
     Source = 'th'
     Position = 'S5'
     Calibration = True
@@ -112,7 +112,7 @@ def plot_predict(x,y, xlabel, ylabel, fOUT):
         ax1.plot(diag, diag-shift, 'k--', alpha=(0.8-0.2*idx), lw=2, label=str(shift))
 
     xvals = [2700., 3100., 2500., 3100., 2300., 3100]
-    labelLines(ax1.get_lines()[3:], xvals=xvals, align=True,color='k')
+    # labelLines(ax1.get_lines()[3:], xvals=xvals, align=True,color='k')
 
     ax2.axhline(y=0.0, ls='--', lw=2, color='black')
     for idx,shift in enumerate([100,200,300,400]):

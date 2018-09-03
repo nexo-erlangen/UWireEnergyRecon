@@ -26,8 +26,8 @@ def get_events(fileIN):
 
 def main():
     # FINAL NETWORK
-    Model = "/180308-1100/180309-1055/180310-1553/180311-2206/180312-1917/180313-2220/"
-    Epoch = 99
+    Model = "/180802-1535/180803-1159/"
+    Epoch = 80
     Source = 'th'
 
     Multi = 'ms'
@@ -56,6 +56,10 @@ def main():
     print data.keys()
     print data['posZ'].size
 
+    # for i in xrange(100):
+    #     print data['E_EXO'][i], data['E_EXOPur'][i], data['E_EXO'][i]- data['E_EXOPur'][i]
+    # exit()
+
     if Calibration:
         fOUT_cal = "_calibrated"
         isSS = data['isSS'] == True
@@ -65,6 +69,7 @@ def main():
                          'MS': data[key][np.invert(isSS)],
                          'SSMS': data[key]}
         for E_List_str in ['E_True', 'E_CNN', 'E_EXO']:
+        # for E_List_str in ['E_True', 'E_EXOPur', 'E_EXO']:
             if E_List_str != 'E_True':
                 for Multi in ['SS', 'MS']:
                     if len(data[E_List_str][Multi]) != 0:
@@ -75,20 +80,20 @@ def main():
             data[key]['SSMS'] = np.concatenate((data[key]['SS'],data[key]['MS']))
         # for Multi in ['SS', 'MS', 'SSMS']:
         for Multi in ['SS']:
-            # doPlot(trE=data["E_True"][Multi],
-            #        prE=data["E_CNN"][Multi],
-            #        posX=data['posX'][Multi],
-            #        posY=data['posY'][Multi],
-            #        posZ=data['posZ'][Multi],
-            #        labeltr='True', labelpr='DNN',
-            #        fileOUT=folderOUT+fileOUT+fOUT_cal+"_ConvNN_"+Multi+".pdf")
-            # doPlot(trE=data["E_True"][Multi],
-            #        prE=data["E_EXO"][Multi],
-            #        posX=data['posX'][Multi],
-            #        posY=data['posY'][Multi],
-            #        posZ=data['posZ'][Multi],
-            #        labeltr = 'True', labelpr = 'Recon',
-            #        fileOUT=folderOUT+fileOUT+fOUT_cal+"_Standard_"+Multi+".pdf")
+        #     doPlot(trE=data["E_True"][Multi],
+        #            prE=data["E_CNN"][Multi],
+        #            posX=data['posX'][Multi],
+        #            posY=data['posY'][Multi],
+        #            posZ=data['posZ'][Multi],
+        #            labeltr='True', labelpr='DNN',
+        #            fileOUT=folderOUT+fileOUT+fOUT_cal+"_ConvNN_"+Multi+".pdf")
+        #     doPlot(trE=data["E_True"][Multi],
+        #            prE=data["E_EXO"][Multi],
+        #            posX=data['posX'][Multi],
+        #            posY=data['posY'][Multi],
+        #            posZ=data['posZ'][Multi],
+        #            labeltr = 'True', labelpr = 'Recon',
+        #            fileOUT=folderOUT+fileOUT+fOUT_cal+"_Standard_"+Multi+".pdf")
             doPlot(trE=data["E_CNN"][Multi],
                    prE=data["E_EXO"][Multi],
                    posX=data['posX'][Multi],
@@ -96,6 +101,13 @@ def main():
                    posZ=data['posZ'][Multi],
                    labeltr = 'DNN', labelpr = 'Recon',
                    fileOUT=folderOUT+fileOUT+fOUT_cal+"_Data_"+Multi+".pdf")
+            # doPlot(trE=data["E_EXO"][Multi],
+            #        prE=data["E_EXOPur"][Multi],
+            #        posX=data['posX'][Multi],
+            #        posY=data['posY'][Multi],
+            #        posZ=data['posZ'][Multi],
+            #        labeltr='EXO', labelpr='EXOPur',
+            #        fileOUT=folderOUT + fileOUT + fOUT_cal + "_Data_" + Multi + ".pdf")
     else:
         isSS = data['isSS'] == True
         doPlot(trE=data["E_True"][isSS],
